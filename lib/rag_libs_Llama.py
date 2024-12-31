@@ -31,13 +31,14 @@ MARKDOWN_SEPARATORS = [
     "",
 ]
 
-EMBEDDING_MODEL_NAME = "thenlper/gte-small"
-READER_MODEL_NAME = "meta-llama/Llama-3.2-3B-Instruct"  # or your chosen Llama-based model
+EMBEDDING_MODEL_NAME = "thenlper/gte-small" #"sentence-transformers/all-MiniLM-L6-v2"
+READER_MODEL_NAME = "meta-llama/Llama-3.2-3B-Instruct"
+RERANKER_MODEL_NAME = "colbert-ir/colbertv2.0" #"cross-encoder/ms-marco-MiniLM-L-6-v2"
 CACHE_PATH = r"C:\Users\Uvais\Documents\coding\streamlit\cache"
-CHUNK_SIZE = 512
+CHUNK_SIZE = 1024
 
 READER_TOKENIZER = AutoTokenizer.from_pretrained(READER_MODEL_NAME)
-RERANKER = RAGPretrainedModel.from_pretrained("colbert-ir/colbertv2.0")
+RERANKER = RAGPretrainedModel.from_pretrained(RERANKER_MODEL_NAME)
 
 
 def clear_memory():
@@ -89,7 +90,7 @@ def split_documents(knowledge_base: List[LangchainDocument]) -> List[LangchainDo
     text_splitter = RecursiveCharacterTextSplitter.from_huggingface_tokenizer(
         emb_tokenizer,
         chunk_size=CHUNK_SIZE,
-        chunk_overlap=int(CHUNK_SIZE / 10),
+        chunk_overlap=int(CHUNK_SIZE / 8),
         add_start_index=True,
         strip_whitespace=True,
         separators=MARKDOWN_SEPARATORS,
@@ -133,7 +134,7 @@ def load_vector_database(cache_path: str) -> FAISS:
         embedding_function=embedding_model,
         docstore=docstore,
         index_to_docstore_id=index_to_docstore_id,
-        distance_strategy=DistanceStrategy.COSINE
+        distance_strategy= DistanceStrategy.DOT_PRODUCT #DistanceStrategy.COSINE
     )
 
     return vector_database_loaded
@@ -192,10 +193,10 @@ def initialise_llm():
         tokenizer=READER_TOKENIZER,
         task="text-generation",
         do_sample=True,
-        temperature=0.2,
+        temperature=0.3,
         repetition_penalty=1.1,
         return_full_text=False,
-        max_new_tokens=500,
+        max_new_tokens=300,
     )
 
 
@@ -203,9 +204,9 @@ def answer_with_rag(
     question: str, 
     llm, 
     knowledge_index: FAISS, 
-    num_retrieved_docs: int = 30, 
-    num_docs_final: int = 10,
-    relevance_threshold: float = 0.5
+    num_retrieved_docs: int = 15, 
+    num_docs_final: int = 5,
+    relevance_threshold: float = 0.7
 ) -> Tuple[str, List[LangchainDocument]]:
     """
     Retrieves relevant documents, optionally reranks them, then uses
@@ -217,7 +218,7 @@ def answer_with_rag(
     if not relevant_docs:
         return "I'm sorry, I cannot answer that based on the provided information.", []
 
-    # Document Reranking with ColBERT if available
+    # Document Reranking
     if RERANKER:
         relevant_docs_strings = [doc.page_content for doc in relevant_docs]
         reranked_results = RERANKER.rerank(question, relevant_docs_strings, k=num_docs_final)
@@ -244,6 +245,9 @@ def answer_with_rag(
     - Do not make assumptions or fabricate details.
     - Provide clear, concise, and job-aligned responses.
     - Ensure the response is professional and grounded in the context provided.
+    - Format responses appropriately:
+    - Use **paragraphs** for descriptive answers or explanations.
+    - Use **bullet points** for lists, key achievements, or skills.
 
     User:
     Context:
