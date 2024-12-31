@@ -1,5 +1,6 @@
 from PyPDF2 import PdfReader
 from docx import Document as DocxDocument
+import os
 
 def extract_text_from_pdf(file_path: str) -> str:
     reader = PdfReader(file_path)
@@ -15,9 +16,14 @@ def extract_text_from_word(file_path: str) -> str:
         text += paragraph.text + "\n"
     return text
 
-import os
-documents = []
-directory = r"C:\Users\Uvais\Documents\coding\streamlit\docs"   
+def save_to_txt(text, file_name, output_dir):
+    output_path = os.path.join(output_dir, f"{os.path.splitext(file_name)[0]}.txt")
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(text)
+
+directory = r"C:\Users\Uvais\Documents\coding\streamlit\docs"
+output_directory = r"C:\Users\Uvais\Documents\coding\streamlit\extracted_text"  # Create output directory if it doesn't exist
+os.makedirs(output_directory, exist_ok=True)
 
 for file_name in os.listdir(directory):
     file_path = os.path.join(directory, file_name)
@@ -28,10 +34,6 @@ for file_name in os.listdir(directory):
     else:
         continue
 
-    documents.append(dict(
-            page_content=text, 
-            metadata={"source": file_name}
-        ))
+    save_to_txt(text, file_name, output_directory)
 
-
-print(documents[0])
+print(f"Text extracted and saved to: {output_directory}")

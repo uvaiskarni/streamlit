@@ -107,46 +107,6 @@ def main():
         Whether it's **automating processes** or building **AI-powered systems**, I strive to deliver innovative solutions that drive progress.
         """)
 
-    # # Background Section
-    # st.markdown("""
-    #     ## 📄 Background
-
-    #     I hold a **Master’s in Computer Science** with a specialization in **Artificial Intelligence** and **Image Analysis** from **Uppsala University**. 
-    #     My career journey has involved working on diverse projects, ranging from **multi-object tracking systems** for **automotive applications** 
-    #     to **AI-driven recruitment assistants**. My work spans **real-time video processing**, **predictive modeling**, and **cloud deployment**, 
-    #     where I leverage AI and machine learning technologies to build scalable systems that meet the challenges of modern industries.
-    #     """)
-
-    # # Skills Section
-    # st.markdown("""
-    #     ## 💻 Skills
-
-    #     Here's the tech I use to create all these AI wonders:
-
-    #     - **Programming**: Python, C++, R, MATLAB (The essential languages for AI and ML development)
-    #     - **Computer Vision**: Object Detection, Segmentation, Multi-Object Tracking (Tools: OpenCV, GStreamer, TensorFlow)
-    #     - **Machine Learning**: Supervised/Unsupervised Learning, Predictive Insights (Frameworks: TensorFlow, PyTorch, OpenVINO, ONNX)
-    #     - **Cloud & Data Infrastructure**: AWS (ECR, EKS, Redshift), OpenStack, Big Data (Spark, Hadoop)
-    #     - **Software Development**: CI/CD, Docker, Git, Streamlit, Flask (For backend development and automation)
-    #     """)
-
-    # # Projects Section
-    # st.markdown("""
-    #     ## 🔧 Projects
-
-    #     ### **AI-Powered Interview Assistant (Ongoing)**
-    #     I built a **RAG framework** with **LLM** to help assess **candidate fit** by answering questions from their profiles. This AI assistant streamlines the recruitment process, making it easier for recruiters to evaluate candidates' experience and qualifications more efficiently.
-
-    #     ### **Multi-Hand Gesture Recognition Using Faster R-CNN**
-    #     Developed a **real-time multi-hand gesture recognition system** using **Faster R-CNN** to provide an interactive and hands-free user experience, perfect for **gaming, robotics**, or **virtual environments**.
-
-    #     ### **Reinforcement Learning in Unity 3D**
-    #     Trained AI agents using the **PPO algorithm** for **reinforcement learning** in **Unity 3D**. This project demonstrates how AI can be applied to create interactive agents capable of learning from their environment.
-
-    #     ### **Registration Plate Localization & Character Classification**
-    #     Designed an **AI model** to **localize registration plates** and **classify characters**, for applications like **smart parking systems** and **vehicle identification**.
-    #     """)
-
     # Education Section
     st.markdown("""
         ## 📚 Education

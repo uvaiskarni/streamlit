@@ -32,58 +32,31 @@ MARKDOWN_SEPARATORS = [
 ]
 
 EMBEDDING_MODEL_NAME = "thenlper/gte-small"
-READER_MODEL_NAME = "HuggingFaceH4/zephyr-7b-beta" #"meta-llama/Llama-3.2-1B"
+READER_MODEL_NAME = "meta-llama/Llama-3.2-3B-Instruct"  # or your chosen Llama-based model
 CACHE_PATH = r"C:\Users\Uvais\Documents\coding\streamlit\cache"
 CHUNK_SIZE = 512
+
 READER_TOKENIZER = AutoTokenizer.from_pretrained(READER_MODEL_NAME)
 RERANKER = RAGPretrainedModel.from_pretrained("colbert-ir/colbertv2.0")
 
-# Define a more targeted prompt format for job interview questions
-prompt_in_chat_format = [
-    {
-        "role": "system",
-        "content": """You are an AI assistant called AI Butler helping Uvais Karni present his qualifications to recruiters effectively.
-    - Only use information provided in the context.
-    - If the context does not contain the requested information, respond with "I'm sorry, I cannot answer that based on the available information."
-    - Do not make assumptions or fabricate details.
-    - Provide clear, concise, and job-aligned responses.
-    - Ensure the response is professional and grounded in the context provided.
-    """
-    },
-    {
-        "role": "user",
-        "content": """Context:
-        {context}
-        ---
-        Recruiter's Question: {question}"""
-    }
-]
 
 def clear_memory():
     """Clear GPU, RAM, and VRAM before initializing models"""
-    # Clear GPU Memory (VRAM)
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
         torch.cuda.synchronize()  # Ensure all tasks are finished
         print("GPU memory cleared!")
 
-    # Clear Python's RAM
     gc.collect()
     print("RAM cleared!")
+
 
 def load_process_data(data_dir: str) -> List[LangchainDocument]:
     """
     Loads personal data from PDFs, Word documents, and custom text files into LangchainDocument format.
-
-    Args:
-        data_dir (str): Directory containing PDF, DOCX, and other personal text-based files.
-
-    Returns:
-        List[LangchainDocument]: List of documents for processing.
     """
     documents = []
 
-    # Load PDF files
     for file in os.listdir(data_dir):
         file_path = os.path.join(data_dir, file)
         if file.endswith(".pdf"):
@@ -93,14 +66,12 @@ def load_process_data(data_dir: str) -> List[LangchainDocument]:
                 if text:
                     documents.append(LangchainDocument(page_content=text, metadata={"source": file}))
 
-        # Load Word documents
         elif file.endswith(".docx"):
             doc = docx.Document(file_path)
             text = "\n".join([para.text for para in doc.paragraphs if para.text.strip()])
             if text:
                 documents.append(LangchainDocument(page_content=text, metadata={"source": file}))
 
-        # Load custom text files (.txt)
         elif file.endswith(".txt"):
             with open(file_path, "r", encoding="utf-8") as f:
                 text = f.read()
@@ -110,10 +81,10 @@ def load_process_data(data_dir: str) -> List[LangchainDocument]:
     return documents
 
 
-def split_documents(
-        knowledge_base: List[LangchainDocument]
-        ) -> List[LangchainDocument]:
-    
+def split_documents(knowledge_base: List[LangchainDocument]) -> List[LangchainDocument]:
+    """
+    Splits the original documents into manageable text chunks.
+    """
     emb_tokenizer = AutoTokenizer.from_pretrained(EMBEDDING_MODEL_NAME)
     text_splitter = RecursiveCharacterTextSplitter.from_huggingface_tokenizer(
         emb_tokenizer,
@@ -134,43 +105,46 @@ def split_documents(
     return docs_processed
 
 
-def load_vector_database(cache_path):
-
+def load_vector_database(cache_path: str) -> FAISS:
+    """
+    Loads an existing FAISS index plus associated docstore and mapping.
+    """
     # Load the FAISS index
-    index = faiss.read_index(os.path.join(cache_path,"vector_db.index"))
+    index = faiss.read_index(os.path.join(cache_path, "vector_db.index"))
 
     # Load the docstore
-    with open(os.path.join(cache_path,"docstore.pkl"), 'rb') as f:
+    with open(os.path.join(cache_path, "docstore.pkl"), 'rb') as f:
         docstore = pickle.load(f)
         
     # Load the index-to-docstore mapping
-    with open(os.path.join(cache_path,"index_to_docstore_id.pkl"), 'rb') as f:
+    with open(os.path.join(cache_path, "index_to_docstore_id.pkl"), 'rb') as f:
         index_to_docstore_id = pickle.load(f)
 
-    # generate embedding model
+    # Generate embedding model
     embedding_model = HuggingFaceEmbeddings(
-    model_name=EMBEDDING_MODEL_NAME,
-    multi_process=True,
-    model_kwargs={"device": "cuda"},
-    encode_kwargs={"normalize_embeddings": True},
+        model_name=EMBEDDING_MODEL_NAME,
+        multi_process=True,
+        model_kwargs={"device": "cuda"},
+        encode_kwargs={"normalize_embeddings": True},
     )
 
     vector_database_loaded = FAISS(
-    index=index,
-    embedding_function=embedding_model,
-    docstore=docstore,
-    index_to_docstore_id=index_to_docstore_id,
-    distance_strategy=DistanceStrategy.COSINE
+        index=index,
+        embedding_function=embedding_model,
+        docstore=docstore,
+        index_to_docstore_id=index_to_docstore_id,
+        distance_strategy=DistanceStrategy.COSINE
     )
 
     return vector_database_loaded
 
 
-def generate_save_vector_database(data_dir):
-    
-    # load the data
+def generate_save_vector_database(data_dir: str) -> FAISS:
+    """
+    Processes documents, creates a FAISS index, and caches it locally.
+    """
+    # Load the data
     knowledge_base = load_process_data(data_dir)
-    # split tokenize and chunk
     docs_processed = split_documents(knowledge_base)
 
     embedding_model = HuggingFaceEmbeddings(
@@ -180,30 +154,39 @@ def generate_save_vector_database(data_dir):
         encode_kwargs={"normalize_embeddings": True},
     )
 
-    vector_database = FAISS.from_documents(docs_processed, embedding_model, distance_strategy=DistanceStrategy.COSINE)
+    vector_database = FAISS.from_documents(
+        docs_processed,
+        embedding_model,
+        distance_strategy=DistanceStrategy.COSINE
+    )
     
-    # cache the vector db
-    # Save the FAISS index
-    faiss.write_index(vector_database.index, os.path.join(CACHE_PATH,"vector_db.index"))
-    # Save the docstore
-    with open(os.path.join(CACHE_PATH,"docstore.pkl"), 'wb') as f:
+    # Cache the vector db
+    faiss.write_index(vector_database.index, os.path.join(CACHE_PATH, "vector_db.index"))
+    with open(os.path.join(CACHE_PATH, "docstore.pkl"), 'wb') as f:
         pickle.dump(vector_database.docstore, f)
-    # Save the index-to-docstore mapping
-    with open(os.path.join(CACHE_PATH,"index_to_docstore_id.pkl"), 'wb') as f:
+    with open(os.path.join(CACHE_PATH, "index_to_docstore_id.pkl"), 'wb') as f:
         pickle.dump(vector_database.index_to_docstore_id, f)
 
     return vector_database
 
 
 def initialise_llm():
-
+    """
+    Initializes and returns a text-generation pipeline with Llama-based model in 4-bit quantization.
+    """
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_use_double_quant=True,
         bnb_4bit_quant_type="nf4",
         bnb_4bit_compute_dtype=torch.float16,
     )
-    model = AutoModelForCausalLM.from_pretrained(READER_MODEL_NAME, quantization_config=bnb_config)
+
+    model = AutoModelForCausalLM.from_pretrained(
+        READER_MODEL_NAME,
+        quantization_config=bnb_config,
+        device_map="auto"
+    )
+
     return pipeline(
         model=model,
         tokenizer=READER_TOKENIZER,
@@ -215,21 +198,26 @@ def initialise_llm():
         max_new_tokens=500,
     )
 
+
 def answer_with_rag(
-        question: str, 
-        llm, 
-        knowledge_index, 
-        num_retrieved_docs=30, 
-        num_docs_final=10,
-        relevance_threshold=0.5) -> Tuple[str, List[LangchainDocument]]:
-    
+    question: str, 
+    llm, 
+    knowledge_index: FAISS, 
+    num_retrieved_docs: int = 30, 
+    num_docs_final: int = 10,
+    relevance_threshold: float = 0.5
+) -> Tuple[str, List[LangchainDocument]]:
+    """
+    Retrieves relevant documents, optionally reranks them, then uses
+    a LLM to generate an answer. The final prompt is built manually.
+    """
+
     # Document Retrieval
     relevant_docs = knowledge_index.similarity_search(query=question, k=num_retrieved_docs)
-
     if not relevant_docs:
         return "I'm sorry, I cannot answer that based on the provided information.", []
 
-    # Document Reranking
+    # Document Reranking with ColBERT if available
     if RERANKER:
         relevant_docs_strings = [doc.page_content for doc in relevant_docs]
         reranked_results = RERANKER.rerank(question, relevant_docs_strings, k=num_docs_final)
@@ -238,21 +226,34 @@ def answer_with_rag(
         reranked_results = sorted(reranked_results, key=lambda x: x["score"], reverse=True)
         relevant_docs = [doc for doc in reranked_results if doc["score"] >= relevance_threshold]
 
-    # Ensure the final list is within the required limit
+    # Ensure the final set is within the required limit
     relevant_docs = relevant_docs[:num_docs_final]
-
     if not relevant_docs:
         return "No sufficiently relevant documents were found.", []
 
-    # Build the final prompt
-    context = "\nExtracted documents:\n" + "".join(
-        [f"Document {i}:::\n{doc}" for i, doc in enumerate(relevant_docs)]
-    )
-    RAG_PROMPT_TEMPLATE = READER_TOKENIZER.apply_chat_template(
-        prompt_in_chat_format, tokenize=False, add_generation_prompt=True
-    )
-    final_prompt = RAG_PROMPT_TEMPLATE.format(question=question, context=context)
+    # Build a **manual** prompt with a "System" role and "User" role.
+    # This is just a string—no special chat templating functions required.
+    # (You can adjust the style, formatting, or roles however you like.)
+    context_text = ""
+    for i, doc in enumerate(relevant_docs):
+        context_text += f"Document {i}:\n{doc}\n"
 
-    # LLM Answer Generation
+    final_prompt = f"""System: You are an AI assistant called AI Butler helping Uvais Karni present his qualifications to recruiters effectively.
+    - Only use information provided in the context.
+    - If the context does not contain the requested information, respond with "I'm sorry, I cannot answer that based on the available information."
+    - Do not make assumptions or fabricate details.
+    - Provide clear, concise, and job-aligned responses.
+    - Ensure the response is professional and grounded in the context provided.
+
+User:
+Context:
+{context_text}
+---
+Recruiter's Question: {question}
+
+Assistant:
+"""
+
+    # LLM Answer Generation (simply pass the final_prompt to your pipeline)
     answer = llm(final_prompt)[0]["generated_text"]
     return answer, relevant_docs
