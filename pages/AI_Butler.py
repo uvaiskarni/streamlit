@@ -212,6 +212,10 @@ with st.expander("Limitations"):
     """)
 
 # System Initialization Section
+if not st.session_state["initialized"]:
+    st.button("Initialize System", on_click=initialize_system)
+
+# Main Functionality
 if st.session_state["initialized"]:
     st.header("Ask a Question")
 

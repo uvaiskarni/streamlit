@@ -245,14 +245,14 @@ def answer_with_rag(
     - Provide clear, concise, and job-aligned responses.
     - Ensure the response is professional and grounded in the context provided.
 
-User:
-Context:
-{context_text}
----
-Recruiter's Question: {question}
+    User:
+    Context:
+    {context_text}
+    ---
+    Recruiter's Question: {question}
 
-Assistant:
-"""
+    Assistant:
+    """
 
     # LLM Answer Generation (simply pass the final_prompt to your pipeline)
     answer = llm(final_prompt)[0]["generated_text"]

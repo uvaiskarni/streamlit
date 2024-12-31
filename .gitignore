@@ -1,4 +1,8 @@
-# files to not upload
-
+# input documents about candidate
 /docs/*
+# processed documents about candidate
 /extracted_text/*
+# log
+/session_logs.txt
+# internal test code
+/test_code/*
