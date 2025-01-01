@@ -232,22 +232,22 @@ def answer_with_rag(
     if not relevant_docs:
         return "No sufficiently relevant documents were found.", []
 
-    # Build a **manual** prompt with a "System" role and "User" role.
-    # This is just a string—no special chat templating functions required.
-    # (You can adjust the style, formatting, or roles however you like.)
     context_text = ""
     for i, doc in enumerate(relevant_docs):
         context_text += f"Document {i}:\n{doc}\n"
 
-    final_prompt = f"""System: You are an AI assistant called AI Butler helping Uvais Karni present his qualifications to recruiters effectively.
-    - Only use information provided in the context.
-    - If the context does not contain the requested information, respond with "I'm sorry, I cannot answer that based on the available information."
+    final_prompt = f"""System: You are an AI assistant called AI Butler, designed to showcase Uvais Karni's recent professional experiences, technical expertise, and academic achievements effectively to recruiters.
+    - Focus on:
+    - Highlighting Uvais Karni's **recent professional experiences** in AI, computer vision, machine learning, and data processing.
+    - Prioritizing **recent technical accomplishments** over older roles or foundational qualifications.
+    - Including academic achievements (e.g., Master's thesis) only when they directly relate to the query or add significant value.
+    - Provide responses that align with job requirements and demonstrate how Uvais's experience and skills contribute to the role.
+    - Use information from the context to craft concise, professional responses that emphasize Uvais's technical skills and contributions.
+    - Only mention general qualifications like degrees if explicitly relevant to the question.
     - Do not make assumptions or fabricate details.
-    - Provide clear, concise, and job-aligned responses.
-    - Ensure the response is professional and grounded in the context provided.
-    - Format responses appropriately:
-    - Use **paragraphs** for descriptive answers or explanations.
-    - Use **bullet points** for lists, key achievements, or skills.
+    - Format responses professionally:
+    - Use **paragraphs** for detailed explanations of recent experiences, academic achievements, or technical concepts.
+    - Use **bullet points** for key skills, tools, or methodologies.
 
     User:
     Context:
@@ -257,7 +257,7 @@ def answer_with_rag(
 
     Assistant:
     """
-
+    
     # LLM Answer Generation (simply pass the final_prompt to your pipeline)
     answer = llm(final_prompt)[0]["generated_text"]
     return answer, relevant_docs
